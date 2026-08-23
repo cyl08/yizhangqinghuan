@@ -1,6 +1,13 @@
-# 一账清欢 💰
+# 一账清欢 💰 · Yizhangqinghuan — Personal Finance Manager
 
 > 一个给自己记账、攒钱、规划旅行开销的小管家。纯前端，数据只存在你自己的浏览器里。
+> A private little finance manager. Pure front-end — your data never leaves your browser.
+
+[中文](#-功能) · [English](#english)
+
+## 📸 截图
+
+![一账清欢截图](screenshot.png)
 
 ## ✨ 功能
 
@@ -31,3 +38,29 @@
 ## 📄 License
 
 MIT
+
+---
+
+## English
+
+**Yizhangqinghuan (一账清欢)** is a personal finance manager for budgeting, saving, and planning travel expenses.
+
+**Features**
+
+- **Account zones** — separate living-expense & savings accounts
+- **Bookkeeping** — income/expense with shortcuts, custom categories, worth-it / not-worth-it tags
+- **Monthly allocation** — split living expenses into categories, with over-budget highlighting
+- **Income ledger** — grouped by source (cumulative + this month)
+- **Monthly & category budgets** — overspend alerts
+- **Net-worth trend** — last 6 months at a glance
+- **Emergency fund / short·long-term savings goals / wishlist** — progress-bar saving
+- **Spending-decision ruler** — 4 questions before you buy
+- **Monthly review** — write a recap, revisit anytime
+
+**Tech stack**: single-file vanilla `index.html`, zero deps, localStorage (device-local, export/import backup), native CSS/SVG charts with auto light/dark mode.
+
+**Run locally**: open `index.html`.
+
+**Deploy**: drop the `手机版/` folder onto Netlify Drop for mobile access.
+
+**License**: MIT
