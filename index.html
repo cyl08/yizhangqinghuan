@@ -138,6 +138,13 @@
   .legend { display: flex; gap: 14px; margin-top: 8px; font-size: 12px; color: var(--ink-2); }
   .legend span { display: flex; align-items: center; gap: 5px; }
   .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .flow-cols { display: flex; align-items: flex-end; gap: 8px; height: 150px; padding-top: 6px; }
+  .flow-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+  .flow-bars { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 3px; }
+  .flow-bar { width: 38%; max-width: 16px; border-radius: 3px 3px 0 0; min-height: 2px; }
+  .flow-bar.in { background: var(--income); }
+  .flow-bar.out { background: var(--expense); }
+  .flow-col .m { font-size: 10px; color: var(--ink-3); }
 
   /* 分类预算 */
   .cb-row { display: grid; grid-template-columns: 70px 1fr auto; align-items: center; gap: 8px; margin-bottom: 9px; }
@@ -232,6 +239,7 @@
     <h1>🐾 <span class="grad">一账清欢</span></h1>
     <div class="toolbar">
       <button id="btn-export">导出备份</button>
+      <button id="btn-export-csv">导出CSV</button>
       <button id="btn-import">导入备份</button>
       <button id="btn-reset">清空</button>
     </div>
@@ -321,6 +329,11 @@
     <div class="card">
       <h2>📊 支出分类占比（近 30 天）</h2>
       <div id="cat-chart"></div>
+    </div>
+    <div class="card">
+      <h2>📊 近 6 月收支对比</h2>
+      <div id="flow-chart"></div>
+      <div class="legend"><span><i style="background:var(--income)"></i>收入</span><span><i style="background:var(--expense)"></i>支出</span></div>
     </div>
   </section>
 
@@ -772,6 +785,26 @@
     }).join("") + '</div>';
   }
 
+  function renderFlow() {
+    var box = document.getElementById("flow-chart");
+    var months = [];
+    for (var i = 5; i >= 0; i--) {
+      var r = monthRange(-i);
+      months.push({ label: r.label, in: sumByType("income", r.start, r.end), out: sumByType("expense", r.start, r.end) });
+    }
+    var max = 1;
+    months.forEach(function (m) { max = Math.max(max, m.in, m.out); });
+    var has = months.some(function (m) { return m.in > 0 || m.out > 0; });
+    if (!has) { box.innerHTML = '<div class="empty">记几笔账，这里就能看到每月钱进钱出～</div>'; return; }
+    box.innerHTML = '<div class="flow-cols">' + months.map(function (m) {
+      var hi = m.in / max * 100, ho = m.out / max * 100;
+      return '<div class="flow-col"><div class="flow-bars">' +
+        '<div class="flow-bar in" style="height:' + Math.max(2, hi) + '%" title="' + m.label + '收入 ' + fmtPlain(m.in) + '"></div>' +
+        '<div class="flow-bar out" style="height:' + Math.max(2, ho) + '%" title="' + m.label + '支出 ' + fmtPlain(m.out) + '"></div>' +
+        '</div><div class="m">' + m.label + '</div></div>';
+    }).join("") + '</div>';
+  }
+
   function renderCatBudgets() {
     var box = document.getElementById("cat-budgets");
     var cur = monthRange(0);
@@ -1099,6 +1132,28 @@
     a.download = "清欢财务备份-" + todayStr() + ".json";
     a.click();
   });
+  function csvEscape(s) {
+    s = String(s == null ? "" : s);
+    if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  document.getElementById("btn-export-csv").addEventListener("click", function () {
+    var ACCT = { living: "生活费", saving: "存款" };
+    var TYPE = { income: "收入", expense: "支出", transfer: "转账" };
+    var rows = [["日期", "类型", "账户", "分类", "金额", "备注"]];
+    state.records.forEach(function (r) {
+      var acct = r.type === "transfer" ? (ACCT[r.from] || r.from) + "→" + (ACCT[r.to] || r.to) : (ACCT[r.account] || r.account);
+      var cat = r.type === "transfer" ? "" : (r.category || "");
+      var note = r.type === "transfer" ? "结余转存" : (r.note || "");
+      rows.push([r.date, TYPE[r.type] || r.type, acct, cat, Number(r.amount) || 0, note]);
+    });
+    var csv = "﻿" + rows.map(function (row) { return row.map(csvEscape).join(","); }).join("\r\n");
+    var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "一账清欢-明细-" + todayStr() + ".csv";
+    a.click();
+  });
   document.getElementById("btn-import").addEventListener("click", function () { document.getElementById("file-input").click(); });
   document.getElementById("file-input").addEventListener("change", function (e) {
     var f = e.target.files[0];
@@ -1151,7 +1206,7 @@
   document.getElementById("rec-filter").addEventListener("change", renderRecords);
 
   function renderAll() {
-    renderHero(); renderTrend(); renderCatChart(); renderCatBudgets(); renderHealth();
+    renderHero(); renderTrend(); renderFlow(); renderCatChart(); renderCatBudgets(); renderHealth();
     renderEmergency(); renderRewards(); renderPlans(); renderIncomeLedger(); renderRecords(); renderQuicks(); renderCatSelect(); renderAcctSeg();
     renderNoteMonths();
   }
