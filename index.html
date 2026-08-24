@@ -230,6 +230,52 @@
   textarea.note:focus { outline: 2px solid rgba(42,120,214,0.3); outline-offset: -1px; }
   .note-view { margin-top: 10px; font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
   .note-view .time { font-size: 12px; color: var(--ink-3); margin-bottom: 6px; }
+
+  /* ================= 清欢 · 特效 / 画质 / 互动 强化 ================= */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes barGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @keyframes pop { 0% { transform: scale(.92); opacity: .5; } 60% { transform: scale(1.03); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes confFly { to { transform: translate(var(--dx), var(--dy)) scale(.35) rotate(220deg); opacity: 0; } }
+
+  body { background: radial-gradient(1100px 560px at 50% -10%, rgba(232,123,164,.10), transparent 60%), radial-gradient(900px 500px at 100% 0%, rgba(42,120,214,.07), transparent 55%), var(--page); }
+  .wrap > section { animation: fadeUp .45s ease both; }
+
+  .card { transition: transform .18s ease, box-shadow .18s ease; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 2px 5px rgba(19,19,19,.06), 0 12px 30px rgba(19,19,19,.09); }
+
+  .col .bar, .flow-bar { transform-origin: bottom; animation: barGrow .6s ease both; transition: height .3s ease, background .2s ease; }
+  .flow-bars .flow-bar:nth-child(2) { animation-delay: .12s; }
+  .col .v, .flow-col .m { font-variant-numeric: tabular-nums; }
+
+  .track .fill, .em-fill { transition: width .6s cubic-bezier(.2,.8,.2,1), background .3s ease; box-shadow: 0 1px 2px rgba(19,19,19,.14); }
+  #budget-fill { animation: barGrow .5s ease both; }
+
+  .quick { transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, color .12s ease; }
+  .quick:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(19,19,19,.10); }
+
+  .rec { transition: background .16s ease, transform .16s ease; }
+  .rec:hover { background: rgba(42,120,214,.05); transform: translateX(2px); }
+  .rec .ops button { transition: transform .12s ease; }
+  .rec .ops button:hover { transform: scale(1.22); }
+
+  .toolbar button { transition: transform .1s ease, background .15s ease, color .15s ease; }
+  .toolbar button:hover { color: var(--ink); box-shadow: 0 2px 8px rgba(19,19,19,.08); }
+  .sweep-row button, .form-grid .add, .form-grid .cat-plus { background: var(--grad); box-shadow: 0 3px 10px rgba(42,120,214,.26); }
+  .add-row button, .note-grid button { box-shadow: 0 2px 8px rgba(42,120,214,.22); }
+  .seg button { transition: background .16s ease, color .16s ease; }
+  input:focus, select:focus, .inline-num:focus, .ai-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(42,120,214,.16); }
+
+  .verdict.pop { animation: pop .32s ease; }
+
+  /* AI 花费卡 */
+  .ai-row { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .ai-row .ai-label { font-size: 12px; color: var(--ink-3); }
+  .ai-big { font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; color: var(--cat-7); transition: color .2s ease; }
+  .ai-input { font: inherit; font-size: 16px; color: var(--ink); background: var(--page); border: 1px solid var(--border); border-radius: 10px; padding: 8px 11px; width: 116px; min-width: 0; }
+  .ai-btn { font: inherit; font-size: 13px; font-weight: 600; color: #fff; background: var(--cat-7); border: none; border-radius: 9px; padding: 8px 15px; cursor: pointer; box-shadow: 0 2px 8px rgba(74,58,167,.28); transition: transform .06s; }
+  .ai-btn:active { transform: scale(.96); }
+  .ai-note { font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+  .ai-note b { color: var(--cat-7); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -391,6 +437,24 @@
     </div>
   </section>
 
+  <!-- AI 使用花费 -->
+  <section class="card">
+    <h2>🤖 每月 AI 花费 <span class="muted" style="font-weight:400;font-size:12px">（DeepSeek / Claude 等 API）</span></h2>
+    <div class="ai-row">
+      <div>
+        <div class="ai-label">本月 AI 花费</div>
+        <div class="ai-big" id="ai-big">¥0</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <input class="ai-input" id="ai-budget" type="number" min="0" placeholder="月预算">
+        <input class="ai-input" id="ai-input" type="number" min="0" step="0.01" placeholder="本月实花" inputmode="decimal">
+        <button class="ai-btn" id="btn-ai-save">保存</button>
+      </div>
+    </div>
+    <div id="ai-chart" class="cols" style="height:130px"></div>
+    <div class="ai-note" id="ai-hint"></div>
+  </section>
+
   <!-- 消费尺子 -->
   <section class="card">
     <h2>📏 买之前，先量一量</h2>
@@ -439,7 +503,7 @@
     monthlyNotes: {},
     livingPool: 0,
     records: [],
-    emGoal: 15000, emSaved: 0, budget: 2000, catBudgets: {},
+    emGoal: 15000, emSaved: 0, budget: 2000, catBudgets: {}, aiCosts: {}, aiBudget: 0,
     cats: {
       expense: ["餐饮", "交通", "购物", "学习", "娱乐", "居住日用", "其他"],
       income: ["生活费", "奖学金", "接单", "实习", "其他"]
@@ -493,6 +557,34 @@
   function todayStr() {
     var d = new Date();
     return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+
+  function animateNum(el, to) {
+    if (!el) return;
+    var from = Number(el.dataset.cur) || 0;
+    el.dataset.cur = to;
+    if (Math.abs(to - from) < 0.001) { el.textContent = fmt(to); return; }
+    var dur = 480, start = null, ease = function (p) { return 1 - Math.pow(1 - p, 3); };
+    function step(ts) {
+      if (start == null) start = ts;
+      var p = Math.min(1, (ts - start) / dur);
+      el.textContent = fmt(from + (to - from) * ease(p));
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  function confetti() {
+    var emojis = ["✨", "💸", "🎉", "💰", "💛", "🐾", "🌟", "🪙"];
+    for (var i = 0; i < 20; i++) {
+      var s = document.createElement("span");
+      s.textContent = emojis[i % emojis.length];
+      var a = Math.random() * Math.PI * 2, r = 70 + Math.random() * 170;
+      s.style.cssText = "position:fixed;left:50%;top:38%;font-size:20px;pointer-events:none;z-index:9999;animation:confFly .9s ease-out " + (i * 0.04) + "s forwards;";
+      s.style.setProperty("--dx", (Math.cos(a) * r) + "px");
+      s.style.setProperty("--dy", (Math.sin(a) * r) + "px");
+      document.body.appendChild(s);
+      (function (n) { setTimeout(function () { n.remove(); }, 1300); })(s);
+    }
   }
 
   var curType = "expense";
@@ -582,10 +674,10 @@
   function renderHero() {
     var b = balance();
     var balEl = document.getElementById("balance");
-    balEl.innerHTML = fmt(b);
+    animateNum(balEl, b);
     balEl.style.color = b < 0 ? "var(--critical)" : "";
-    document.getElementById("acct-living").textContent = fmt(acctBalance("living"));
-    document.getElementById("acct-saving").textContent = fmt(acctBalance("saving"));
+    animateNum(document.getElementById("acct-living"), acctBalance("living"));
+    animateNum(document.getElementById("acct-saving"), acctBalance("saving"));
     document.getElementById("acct-src-living").textContent = "来源：" + (state.accountSource.living || "点此填写");
     document.getElementById("acct-src-saving").textContent = "来源：" + (state.accountSource.saving || "点此填写");
 
@@ -1036,6 +1128,7 @@
     pawCount++;
     if (pawCount >= 5) {
       pawCount = 0;
+      confetti();
       var el = document.getElementById("tipbar");
       el.innerHTML = "✨ 彩蛋解锁：<b>人间有味是清欢</b> ✨<br>主人要一直记得，清欢会陪你变成很厉害的人，也会陪你把 1 万块守成 1.5 万、再变成更多。";
       el.classList.add("egg");
@@ -1058,6 +1151,7 @@
     if (yes >= 3) { el.textContent = "✅ 放心买，它是「投资」不是「消费」。"; el.style.background = "rgba(12,163,12,0.12)"; el.style.color = "var(--good)"; }
     else if (yes === 2) { el.textContent = "🤔 可买可不买，建议放购物车「冷却 3–7 天」再决定。"; el.style.background = "rgba(250,178,25,0.14)"; el.style.color = "var(--ink)"; }
     else { el.textContent = "⏸ 建议缓一缓，它更像「想要」，不是「需要」。"; el.style.background = "rgba(235,104,52,0.12)"; el.style.color = "var(--expense)"; }
+    el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
   }
   document.getElementById("ruler").addEventListener("click", function (e) {
     var b = e.target.closest("button");
@@ -1175,6 +1269,56 @@
     save(); renderAll();
   });
 
+  // ---- AI 花费 ----
+  function aiKey(offset) {
+    var d = new Date(); d = new Date(d.getFullYear(), d.getMonth() + offset, 1);
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2);
+  }
+  function renderAi() {
+    var cur = aiKey(0);
+    var amt = Number(state.aiCosts[cur]) || 0;
+    var big = document.getElementById("ai-big");
+    big.textContent = fmt(amt);
+    big.style.color = amt > (Number(state.aiBudget) || 0) ? "var(--critical)" : "var(--cat-7)";
+    var inp = document.getElementById("ai-input");
+    if (document.activeElement !== inp) inp.value = amt || "";
+    var bud = document.getElementById("ai-budget");
+    if (document.activeElement !== bud) bud.value = Number(state.aiBudget) || 0;
+
+    var months = [], max = 1;
+    for (var i = 5; i >= 0; i--) {
+      var m = aiKey(-i); var v = Number(state.aiCosts[m]) || 0; max = Math.max(max, v);
+      months.push({ label: new Date(m + "-01T00:00:00").getMonth() + 1 + "月", v: v, active: m === cur });
+    }
+    var box = document.getElementById("ai-chart");
+    var hasAny = months.some(function (m) { return m.v > 0; });
+    if (!hasAny) { box.innerHTML = '<div class="empty">记下这个月的 API 花费，这里会画出走势～</div>'; }
+    else {
+      box.innerHTML = months.map(function (m) {
+        var h = max > 0 ? Math.max(2, m.v / max * 100) : 2;
+        return '<div class="col"><div class="bars"><div class="bar" style="height:' + h + '%' + (m.active ? '' : ';opacity:.72') + '" title="' + m.label + ' ' + fmtPlain(m.v) + '"></div></div>' +
+          '<div class="v">' + fmtPlain(m.v) + '</div><div class="m">' + m.label + '</div></div>';
+      }).join("");
+    }
+
+    var sub = document.getElementById("ai-hint");
+    var curIn = sumByType("income", monthRange(0).start, monthRange(0).end);
+    var bgt = Number(state.aiBudget) || 0;
+    var bits = [];
+    if (curIn > 0) bits.push("占本月收入 " + (amt / curIn * 100).toFixed(1) + "%");
+    if (bgt > 0) bits.push(amt > bgt ? "⚠ 超 AI 预算 " + fmt(amt - bgt) : "AI 预算剩 " + fmt(bgt - amt));
+    bits.push("花在 DeepSeek / Claude 上，是给未来的自己买技能");
+    sub.innerHTML = bits.map(function (b) { return "<b>" + b + "</b>"; }).join(" · ");
+  }
+  document.getElementById("btn-ai-save").addEventListener("click", function () {
+    var v = Number(document.getElementById("ai-input").value);
+    if (isNaN(v) || v < 0) { alert("填个数字哦～"); return; }
+    state.aiCosts[aiKey(0)] = v; save(); renderAll();
+  });
+  document.getElementById("ai-budget").addEventListener("change", function () {
+    state.aiBudget = Number(this.value) || 0; save(); renderAi();
+  });
+
   // ---- 月度总结 ----
   function monthKey(date) { return date.slice(0, 7); }
   function renderNoteMonths() {
@@ -1208,11 +1352,13 @@
   function renderAll() {
     renderHero(); renderTrend(); renderFlow(); renderCatChart(); renderCatBudgets(); renderHealth();
     renderEmergency(); renderRewards(); renderPlans(); renderIncomeLedger(); renderRecords(); renderQuicks(); renderCatSelect(); renderAcctSeg();
-    renderNoteMonths();
+    renderAi(); renderNoteMonths();
   }
 
   document.getElementById("f-date").value = todayStr();
   renderRuler(); renderVerdict(); renderTip(); renderAll();
+  var secs = document.querySelectorAll(".wrap > section");
+  secs.forEach(function (el, i) { el.style.animationDelay = (i * 0.05) + "s"; });
 })();
 </script>
 </body>
